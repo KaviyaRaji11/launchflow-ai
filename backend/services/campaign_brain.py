@@ -86,6 +86,45 @@ def _tone_content(tone: str, product_name: str, usp: str, audience: str):
     }
 
 
+
+def _platform_ctas(tone: str) -> dict[str, str]:
+    tone = tone.casefold()
+    if "premium" in tone:
+        return {
+            "instagram": "Explore the collection", "reel": "See the details", "story": "View the edit",
+            "youtube": "Watch the full overview", "facebook": "Discover the collection",
+            "x": "Explore further", "whatsapp": "Message us for details", "status": "View the collection",
+        }
+    if "professional" in tone:
+        return {
+            "instagram": "View the key details", "reel": "See the process", "story": "Review the highlights",
+            "youtube": "Get the full overview", "facebook": "Request more information",
+            "x": "Read the summary", "whatsapp": "Contact us for details", "status": "See the information",
+        }
+    if "playful" in tone:
+        return {
+            "instagram": "Save a spot in your day", "reel": "Watch the fun unfold", "story": "Tap for a closer look",
+            "youtube": "Catch the quick tour", "facebook": "Join the conversation",
+            "x": "Take a peek", "whatsapp": "Say hi to learn more", "status": "Take a quick peek",
+        }
+    if "warm" in tone:
+        return {
+            "instagram": "Find your new favorite", "reel": "Take a closer look", "story": "Discover the little details",
+            "youtube": "Get to know it", "facebook": "Share what you think",
+            "x": "Learn a little more", "whatsapp": "Reach out any time", "status": "Find out more",
+        }
+    if "bold" in tone:
+        return {
+            "instagram": "Make your move", "reel": "See it in action", "story": "Choose your next step",
+            "youtube": "Get the full story", "facebook": "Make your choice heard",
+            "x": "Make it happen", "whatsapp": "Talk to us today", "status": "Step in and explore",
+        }
+    return {
+        "instagram": "Take a closer look", "reel": "See what makes it different", "story": "Explore the details",
+        "youtube": "Watch the quick tour", "facebook": "Tell us what you think",
+        "x": "Find out more", "whatsapp": "Send us a message", "status": "See more here",
+    }
+
 def build_campaign(brief: dict) -> dict:
     product_name = _text(brief.get("product_name"))
     description = _text(brief.get("description"))
@@ -100,11 +139,9 @@ def build_campaign(brief: dict) -> dict:
             detail="Product name is required.",
         )
 
-    if not usp:
-        usp = description
-
-    if not usp:
-        usp = "A simple choice made for everyday needs."
+    if not usp or usp.casefold().rstrip(".!? ") == description.casefold().rstrip(".!? "):
+        # Keep a long description as background context instead of copying it into every caption.
+        usp = "a considered choice for everyday needs"
 
     if not audience:
         audience = "people looking for a practical choice"
@@ -118,7 +155,8 @@ def build_campaign(brief: dict) -> dict:
 
     price_line = f"Available at {price}." if price else ""
 
-    cta = tone["cta"]
+    ctas = _platform_ctas(brand_tone)
+    cta = ctas["instagram"]
     hashtags = _hashtags(product_name, usp)
 
     # ---------------------------------------------------------
@@ -130,7 +168,7 @@ def build_campaign(brief: dict) -> dict:
         f"{tone['support']}\n\n"
         f"{tone['closing']}"
         f"{f' {price_line}' if price_line else ''}\n\n"
-        f"{cta}."
+        f"{ctas['instagram']}."
     )
 
     instagram_reel = (
@@ -138,11 +176,11 @@ def build_campaign(brief: dict) -> dict:
         f"Here's the idea: {usp}.\n\n"
         f"Made with {audience} in mind."
         f"{f' {price_line}' if price_line else ''}\n\n"
-        f"{cta}."
+        f"{ctas['reel']}."
     )
 
     instagram_reel_caption = (
-        f"{product_name} — {usp}."
+        f"A closer look at {product_name}: {tone['closing']}"
         f"{f' {price_line}' if price_line else ''}"
     )
 
@@ -153,7 +191,7 @@ def build_campaign(brief: dict) -> dict:
             f"{tone['closing']}"
             f"{f' {price_line}' if price_line else ''}"
         ),
-        "cta": cta,
+        "cta": ctas["story"],
     }
 
     # ---------------------------------------------------------
@@ -166,11 +204,11 @@ def build_campaign(brief: dict) -> dict:
         f"The idea is simple: {usp}.\n\n"
         f"It's made with {audience} in mind."
         f"{f' {price_line}' if price_line else ''}\n\n"
-        f"{cta}."
+        f"{ctas['youtube']}."
     )
 
     youtube_caption = (
-        f"{product_name}: {usp}."
+        f"{tone['opening']} Quick take: {product_name} brings {usp.rstrip('.!?')} into focus."
         f"{f' {price_line}' if price_line else ''}"
     )
 
@@ -184,7 +222,7 @@ def build_campaign(brief: dict) -> dict:
         f"{tone['support']}\n\n"
         f"{tone['closing']}"
         f"{f' {price_line}' if price_line else ''}\n\n"
-        f"{cta}."
+        f"{ctas['facebook']}."
     )
 
     # ---------------------------------------------------------
@@ -192,8 +230,7 @@ def build_campaign(brief: dict) -> dict:
     # ---------------------------------------------------------
 
     x_text = (
-        f"{product_name}: {usp}. "
-        f"{tone['closing']}"
+        f"Worth a look: {product_name}. {tone['closing']}"
     )
 
     if price:
@@ -216,7 +253,7 @@ def build_campaign(brief: dict) -> dict:
         f"{usp}.\n\n"
         f"{tone['closing']}"
         f"{f' {price_line}' if price_line else ''}\n\n"
-        f"{cta}."
+        f"{ctas['whatsapp']}."
     )
 
     whatsapp_status = {
@@ -226,7 +263,7 @@ def build_campaign(brief: dict) -> dict:
             f"{tone['closing']}"
             f"{f' {price_line}' if price_line else ''}"
         ),
-        "cta": cta,
+        "cta": ctas["status"],
     }
 
     return {
@@ -244,13 +281,13 @@ def build_campaign(brief: dict) -> dict:
                 "post": {
                     "caption": instagram_caption,
                     "hashtags": hashtags,
-                    "cta": cta,
+                    "cta": ctas["instagram"],
                 },
                 "reel": {
                     "hook": tone["opening"],
                     "script": instagram_reel,
                     "caption": instagram_reel_caption,
-                    "cta": cta,
+                    "cta": ctas["reel"],
                 },
                 "story": instagram_story,
             },
@@ -260,7 +297,7 @@ def build_campaign(brief: dict) -> dict:
                     "hook": f"Why choose {product_name}?",
                     "script": youtube_script,
                     "caption": youtube_caption,
-                    "cta": cta,
+                    "cta": ctas["youtube"],
                 },
                 "thumbnail": {
                     "text": product_name,
@@ -274,21 +311,21 @@ def build_campaign(brief: dict) -> dict:
             "facebook": {
                 "post": {
                     "caption": facebook_caption,
-                    "cta": cta,
+                    "cta": ctas["facebook"],
                 },
             },
 
             "x": {
                 "post": {
                     "text": x_text,
-                    "cta": cta,
+                    "cta": ctas["x"],
                 },
             },
 
             "whatsapp": {
                 "message": {
                     "text": whatsapp_message,
-                    "cta": cta,
+                    "cta": ctas["whatsapp"],
                 },
                 "status": whatsapp_status,
             },

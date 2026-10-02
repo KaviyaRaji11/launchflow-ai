@@ -43,13 +43,17 @@ FRONTEND_DIST = FRONTEND_DIR / "dist"
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="LaunchFlow AI")
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://launchflow-ai-nine.vercel.app,http://localhost:5173,http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://launchflow-ai-nine.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -635,7 +639,9 @@ Rules:
 - Preserve exact product name.
 - Preserve exact price if provided.
 - Do not invent facts.
-- Make it different from previous wording.
+- Write fresh marketing copy; do not copy or closely paraphrase the product description.
+- Use the description only to understand the product. Build a new opening and sentence structure around the product and its benefits.
+- Make it different from previous wording and from the description itself.
 - Make it native to the platform.
 - Keep it concise.
 - For X, keep the main text under 280 characters.
@@ -649,10 +655,46 @@ Return ONLY:
 }}
 """
 
-    result = await call_openrouter_copy(
-        prompt,
-        temperature=0.9,
-    )
+    result = None
+    if OPENROUTER_API_KEY:
+        try:
+            result = await call_openrouter_copy(prompt, temperature=0.9)
+        except HTTPException as error:
+            if "HTTP 401" not in str(error.detail):
+                raise
+
+    if result is None:
+        # Keep regeneration usable in local/demo deployments without a valid provider key.
+        benefit = usp.strip()
+        if not benefit or benefit.casefold().rstrip(".!? ") == description.casefold().rstrip(".!? "):
+            benefit = "a thoughtful choice for everyday needs"
+        tone_key = brand_tone.casefold()
+        tone_openings = {
+            "premium": f"A more considered everyday starts with {product_name}.",
+            "professional": f"A practical option to keep in view: {product_name}.",
+            "playful": f"A little more fun in your day? Meet {product_name}.",
+            "warm": f"Make a little room for {product_name} in your routine.",
+            "bold": f"Ready for a standout choice? Meet {product_name}.",
+        }
+        default_opening = f"Meet {product_name}: a fresh fit for your day."
+        voice_opening = tone_openings.get(tone_key, default_opening)
+        variations = ["A new angle for your everyday.", "One to keep on your radar.", "Made to fit the moments that matter."]
+        opening = f"{voice_opening} {variations[time.time_ns() % len(variations)]}"
+        body = f"{benefit.rstrip('.!?')} — made with {audience.strip() or 'you'} in mind."
+        cta_by_tone = {
+            "premium": {"instagram": "Explore the collection", "youtube": "Watch the full overview", "facebook": "Discover the collection", "x": "Explore further", "whatsapp": "Message us for details"},
+            "professional": {"instagram": "View the key details", "youtube": "Get the full overview", "facebook": "Request more information", "x": "Read the summary", "whatsapp": "Contact us for details"},
+            "playful": {"instagram": "Save a spot in your day", "youtube": "Catch the quick tour", "facebook": "Join the conversation", "x": "Take a peek", "whatsapp": "Say hi to learn more"},
+            "warm": {"instagram": "Find your new favorite", "youtube": "Get to know it", "facebook": "Share what you think", "x": "Learn a little more", "whatsapp": "Reach out any time"},
+            "bold": {"instagram": "Make your move", "youtube": "Get the full story", "facebook": "Make your choice heard", "x": "Make it happen", "whatsapp": "Talk to us today"},
+        }
+        default_ctas = {"instagram": "Take a closer look", "youtube": "Watch the quick tour", "facebook": "Tell us what you think", "x": "Find out more", "whatsapp": "Send us a message"}
+        ctas = cta_by_tone.get(tone_key, default_ctas)
+        result = {
+            "text": f"{opening}\n\n{body}",
+            "cta": ctas.get(platform, "Discover more"),
+            "hashtags": ["#" + re.sub(r"[^A-Za-z0-9]", "", product_name)] if platform == "instagram" else [],
+        }
 
     if platform == "x" and isinstance(result, dict) and isinstance(result.get("text"), str):
         result["text"] = limit_x_text(result["text"])
@@ -732,6 +774,7 @@ WhatsApp:
 Create a short Status/video content idea suitable for WhatsApp.
 
 Do not invent product features.
+Treat the description as background context and do not repeat it verbatim as the caption, hook, or script.
 Keep the product central.
 Make the idea practical for a small business.
 
@@ -752,10 +795,27 @@ Return ONLY JSON:
 }}
 """
 
-    result = await call_openrouter_copy(
-        prompt,
-        temperature=0.8,
-    )
+    result = None
+    if OPENROUTER_API_KEY:
+        try:
+            result = await call_openrouter_copy(prompt, temperature=0.8)
+        except HTTPException as error:
+            if "HTTP 401" not in str(error.detail):
+                raise
+
+    if result is None:
+        is_reel = platform == "instagram"
+        result = {
+            "title": f"A closer look at {product_name}",
+            "hook": "A small change can make an ordinary moment feel different.",
+            "idea": f"Show {product_name} as part of a short, relatable moment for its audience, then highlight its value without repeating the product description.",
+            "scenes": [
+                {"scene": 1, "visual": "Open on a relatable moment for the target audience.", "spoken_or_text": "Looking for a fresh idea for your day?"},
+                {"scene": 2, "visual": f"Bring {product_name} into the scene with a clear product shot.", "spoken_or_text": f"Meet {product_name}, a thoughtful choice for everyday needs."},
+                {"scene": 3, "visual": "Close with the product and a simple on-screen prompt.", "spoken_or_text": "Take a closer look and find your fit."},
+            ],
+            "cta": "See the Reel idea" if is_reel else "Watch the quick overview",
+        }
 
     return {
         "ok": True,

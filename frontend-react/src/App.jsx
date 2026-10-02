@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-const API = (import.meta.env.VITE_API_URL || 'https://launchflow-ai.onrender.com').replace(/\/$/, '')
+const API = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '' : 'https://launchflow-ai.onrender.com')).replace(/\/$/, '')
 
 function readStored(key) {
   try {
@@ -943,6 +943,25 @@ function App() {
 
   const reviewNeeded = qualityNeedsAcknowledgement
 
+  const renderCaption = (text, label = 'Caption') => (
+    <div className="caption-copy-row">
+      <p><b>{label}:</b> {text}</p>
+      <button
+        type="button"
+        className="copy-icon-button"
+        aria-label={`Copy ${label.toLowerCase()}`}
+        title={`Copy ${label.toLowerCase()}`}
+        onClick={() => copyText(text, `${label} copied.`)}
+        disabled={!text}
+      >
+        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+        </svg>
+      </button>
+    </div>
+  )
+
   // ---------------------------------------------------------
   // Platform renderers
   // ---------------------------------------------------------
@@ -960,12 +979,7 @@ function App() {
                 Instagram Post
               </strong>
 
-              <p>
-                {
-                  content.post
-                    .caption
-                }
-              </p>
+              {renderCaption(content.post.caption, 'Instagram caption')}
 
               {content.post
                 .hashtags
@@ -992,14 +1006,7 @@ function App() {
                 Instagram Reel
               </strong>
 
-              <p>
-                <b>
-                  Caption:
-                </b>{' '}
-                {
-                  content.reel.caption
-                }
-              </p>
+              {renderCaption(content.reel.caption, 'Reel caption')}
 
               <strong>
                 CTA:{' '}
@@ -1071,15 +1078,7 @@ function App() {
                 YouTube Short
               </strong>
 
-              <p>
-                <b>
-                  Caption:
-                </b>{' '}
-                {
-                  content.short
-                    .caption
-                }
-              </p>
+              {renderCaption(content.short.caption, 'YouTube Short caption')}
 
               <strong>
                 CTA:{' '}
@@ -1134,12 +1133,7 @@ function App() {
             Facebook Post
           </strong>
 
-          <p>
-            {
-              content.post
-                ?.caption
-            }
-          </p>
+          {renderCaption(content.post?.caption, 'Facebook caption')}
 
           <strong>
             CTA:{' '}
@@ -1161,11 +1155,7 @@ function App() {
           X Post
         </strong>
 
-        <p>
-          {
-            content.post?.text
-          }
-        </p>
+        {renderCaption(content.post?.text, 'X post')}
 
         <small>
           {
@@ -1202,12 +1192,7 @@ function App() {
                 WhatsApp Message
               </strong>
 
-              <p>
-                {
-                  content.message
-                    .text
-                }
-              </p>
+              {renderCaption(content.message.text, 'WhatsApp message')}
 
               <strong>
                 CTA:{' '}
