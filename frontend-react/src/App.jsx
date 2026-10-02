@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-const API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const API = (import.meta.env.VITE_API_URL || 'https://launchflow-ai.onrender.com').replace(/\/$/, '')
 
 function readStored(key) {
   try {
@@ -74,7 +74,6 @@ const emptyForm = {
   audience: '',
   usp: '',
   brandTone: 'friendly',
-  language: 'English',
 }
 
 const toApiBrief = (form) => ({
@@ -84,7 +83,6 @@ const toApiBrief = (form) => ({
   audience: form.audience,
   usp: form.usp,
   brand_tone: form.brandTone,
-  language: form.language,
 })
 
 function applyPlatformCopy(source, platform, generatedCopy) {
@@ -356,11 +354,6 @@ function App() {
       form.brandTone,
     )
 
-    formData.append(
-      'language',
-      form.language,
-    )
-
     const file =
       getImageFile()
 
@@ -565,11 +558,6 @@ function App() {
         form.brandTone,
       )
 
-      formData.append(
-        'language',
-        form.language,
-      )
-
       const response =
         await fetch(
           `${API}/api/regenerate-caption`,
@@ -697,11 +685,6 @@ function App() {
         formData.append(
           'brand_tone',
           form.brandTone,
-        )
-
-        formData.append(
-          'language',
-          form.language,
         )
 
         const response =
@@ -1502,32 +1485,6 @@ function App() {
 
                   <option value="premium">
                     Premium
-                  </option>
-                </select>
-              </label>
-
-              <label>
-                Language
-
-                <select
-                  name="language"
-                  value={
-                    form.language
-                  }
-                  onChange={
-                    handleChange
-                  }
-                >
-                  <option>
-                    English
-                  </option>
-
-                  <option>
-                    Tamil
-                  </option>
-
-                  <option>
-                    Hinglish
                   </option>
                 </select>
               </label>
