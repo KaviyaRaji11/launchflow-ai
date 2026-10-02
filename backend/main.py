@@ -46,7 +46,7 @@ app = FastAPI(title="LaunchFlow AI")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://launchflow-cygwin5pt-kaviya-raji-s-projects.vercel.app",
+        "https://launchflow-ai-nine.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
     ],
