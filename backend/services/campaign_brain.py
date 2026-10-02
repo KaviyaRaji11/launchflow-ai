@@ -20,10 +20,7 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
-OPENROUTER_MODEL = os.getenv(
-    "OPENROUTER_MODEL",
-    "meta-llama/llama-3.1-8b-instruct:free",
-)
+OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct"
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
