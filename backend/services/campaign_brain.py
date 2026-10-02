@@ -1,9 +1,22 @@
 import json
+import logging
 import os
 import re
 
 import httpx
 from fastapi import HTTPException
+
+
+# ---------------------------------------------------------
+# Logging
+# ---------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------
+# OpenRouter configuration
+# ---------------------------------------------------------
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
@@ -14,6 +27,10 @@ OPENROUTER_MODEL = os.getenv(
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+
+# ---------------------------------------------------------
+# Campaign Brain system prompt
+# ---------------------------------------------------------
 
 SYSTEM_PROMPT = """
 You are the Campaign Brain inside LaunchFlow AI.
@@ -158,6 +175,10 @@ RULES:
 """
 
 
+# ---------------------------------------------------------
+# Build user prompt
+# ---------------------------------------------------------
+
 def build_user_prompt(data: dict) -> str:
     return f"""
 Create a complete coordinated marketing campaign from this product brief.
@@ -196,17 +217,30 @@ Remember:
 """
 
 
+# ---------------------------------------------------------
+# Call Campaign Brain
+# ---------------------------------------------------------
+
 async def call_campaign_brain(brief: dict) -> dict:
 
+    # -----------------------------------------------------
+    # Check API key
+    # -----------------------------------------------------
+
     if not OPENROUTER_API_KEY:
+        logger.error("OPENROUTER_API_KEY is not set.")
+
         raise HTTPException(
             status_code=500,
             detail="OPENROUTER_API_KEY is not set.",
         )
 
+    # -----------------------------------------------------
+    # Build request payload
+    # -----------------------------------------------------
+
     payload = {
         "model": OPENROUTER_MODEL,
-
         "messages": [
             {
                 "role": "system",
@@ -217,9 +251,12 @@ async def call_campaign_brain(brief: dict) -> dict:
                 "content": build_user_prompt(brief),
             },
         ],
-
         "temperature": 0.7,
     }
+
+    # -----------------------------------------------------
+    # Request headers
+    # -----------------------------------------------------
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -227,38 +264,166 @@ async def call_campaign_brain(brief: dict) -> dict:
         "X-Title": "LaunchFlow AI",
     }
 
+    # -----------------------------------------------------
+    # Log request information
+    # -----------------------------------------------------
+
+    logger.info(
+        "Calling OpenRouter Campaign Brain. Model=%s URL=%s",
+        OPENROUTER_MODEL,
+        OPENROUTER_URL,
+    )
+
+    # -----------------------------------------------------
+    # Call OpenRouter
+    # -----------------------------------------------------
+
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10)) as client:
+
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                60,
+                connect=10,
+            )
+        ) as client:
+
             response = await client.post(
                 OPENROUTER_URL,
                 headers=headers,
                 json=payload,
             )
-    except httpx.TimeoutException as error:
-        raise HTTPException(status_code=504, detail=f"Campaign Brain request timed out: {error}")
-    except httpx.RequestError as error:
-        raise HTTPException(status_code=502, detail=f"Could not connect to OpenRouter Campaign Brain: {error}")
 
-    if response.status_code != 200:
+    except httpx.TimeoutException as error:
+
+        logger.exception(
+            "OpenRouter request timed out: %s",
+            error,
+        )
+
+        raise HTTPException(
+            status_code=504,
+            detail=f"Campaign Brain request timed out: {error}",
+        )
+
+    except httpx.RequestError as error:
+
+        logger.exception(
+            "Could not connect to OpenRouter: %s",
+            error,
+        )
 
         raise HTTPException(
             status_code=502,
-            detail=f"Campaign text provider returned HTTP {response.status_code}.",
+            detail=(
+                f"Could not connect to OpenRouter Campaign Brain: "
+                f"{error}"
+            ),
         )
 
-    try:
-        data = response.json()
-    except ValueError:
-        raise HTTPException(status_code=502, detail="OpenRouter Campaign Brain returned invalid JSON.")
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=502, detail="OpenRouter Campaign Brain returned an invalid response.")
+    # -----------------------------------------------------
+    # Log OpenRouter response
+    # -----------------------------------------------------
+
+    logger.info(
+        "OpenRouter response status: %s",
+        response.status_code,
+    )
+
+    # IMPORTANT:
+    # Log the response body for non-200 responses.
+    # This will tell us why OpenRouter is returning 404.
+    if response.status_code != 200:
+
+        response_text = response.text[:2000]
+
+        logger.error(
+            "OpenRouter returned HTTP %s. Response body: %s",
+            response.status_code,
+            response_text,
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Campaign text provider returned HTTP "
+                f"{response.status_code}. "
+                f"Provider response: {response_text}"
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Parse OpenRouter JSON response
+    # -----------------------------------------------------
 
     try:
+
+        data = response.json()
+
+    except ValueError as error:
+
+        logger.error(
+            "OpenRouter returned invalid JSON: %s",
+            error,
+        )
+
+        logger.error(
+            "Raw response: %s",
+            response.text[:2000],
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "OpenRouter Campaign Brain returned invalid JSON."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Validate response object
+    # -----------------------------------------------------
+
+    if not isinstance(data, dict):
+
+        logger.error(
+            "OpenRouter returned an invalid response type: %s",
+            type(data).__name__,
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "OpenRouter Campaign Brain returned "
+                "an invalid response."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Extract model response
+    # -----------------------------------------------------
+
+    try:
+
         raw = data["choices"][0]["message"]["content"]
+
         if not isinstance(raw, str) or not raw.strip():
             raise ValueError("empty message content")
 
-    except (KeyError, IndexError, TypeError, ValueError) as error:
+    except (
+        KeyError,
+        IndexError,
+        TypeError,
+        ValueError,
+    ) as error:
+
+        logger.error(
+            "Unexpected OpenRouter response structure: %s",
+            error,
+        )
+
+        logger.error(
+            "OpenRouter response JSON: %s",
+            json.dumps(data)[:3000],
+        )
 
         raise HTTPException(
             status_code=502,
@@ -267,8 +432,13 @@ async def call_campaign_brain(brief: dict) -> dict:
             ),
         )
 
+    # -----------------------------------------------------
+    # Clean model response
+    # -----------------------------------------------------
+
     raw = raw.strip()
 
+    # Remove ```json at the beginning
     raw = re.sub(
         r"^```(?:json)?",
         "",
@@ -276,11 +446,16 @@ async def call_campaign_brain(brief: dict) -> dict:
         flags=re.IGNORECASE,
     ).strip()
 
+    # Remove ``` at the end
     raw = re.sub(
         r"```$",
         "",
         raw,
     ).strip()
+
+    # -----------------------------------------------------
+    # Parse campaign JSON
+    # -----------------------------------------------------
 
     try:
 
@@ -288,12 +463,45 @@ async def call_campaign_brain(brief: dict) -> dict:
 
     except json.JSONDecodeError as error:
 
+        logger.error(
+            "Campaign Brain returned invalid JSON: %s",
+            error,
+        )
+
+        logger.error(
+            "Raw Campaign Brain response: %s",
+            raw[:2000],
+        )
+
         raise HTTPException(
             status_code=502,
             detail=(
                 f"Campaign Brain returned invalid JSON: "
-                f"{error}. Raw response: {raw[:800]}"
+                f"{error}. "
+                f"Raw response: {raw[:800]}"
             ),
         )
+
+    # -----------------------------------------------------
+    # Validate final campaign object
+    # -----------------------------------------------------
+
+    if not isinstance(campaign, dict):
+
+        logger.error(
+            "Campaign Brain JSON is not an object."
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Campaign Brain returned an invalid "
+                "campaign structure."
+            ),
+        )
+
+    logger.info(
+        "Campaign Brain successfully generated campaign."
+    )
 
     return campaign
