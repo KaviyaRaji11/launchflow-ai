@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LaunchFlow AI</title>
+<style>
+  :root {
+    --bg: #15100a;
+    --card: #1f1811;
+    --border: #33281a;
+    --gold: #e3a14a;
+    --white: #f5f1e8;
+    --muted: #a79a86;
+    --green: #5fd6a4;
+    --red: #e06a6a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--white);
+    padding: 2rem 1.25rem 4rem;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+  .tagline { color: var(--gold); font-style: italic; margin-top: 0; margin-bottom: 2rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 { margin-top: 0; font-size: 1.1rem; color: var(--gold); }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0.25rem; }
+  input, textarea, select {
+    width: 100%;
+    background: #0f0b07;
+    border: 1px solid var(--border);
+    color: var(--white);
+    border-radius: 6px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.95rem;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  button {
+    background: var(--gold);
+    color: #1a1308;
+    border: none;
+    border-radius: 6px;
+    padding: 0.7rem 1.3rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 1rem;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+  .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .platform-card {
+    background: #0f0b07;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .platform-card h3 { margin: 0 0 0.5rem; font-size: 0.9rem; text-transform: uppercase; color: var(--gold); letter-spacing: 0.05em; }
+  .platform-card img { width: 100%; border-radius: 6px; margin-bottom: 0.5rem; }
+  .hashtags { color: var(--gold); font-size: 0.85rem; margin-top: 0.4rem; }
+  .trace-item, .check-item {
+    display: flex; justify-content: space-between; gap: 1rem;
+    font-size: 0.85rem; padding: 0.35rem 0; border-bottom: 1px solid var(--border);
+  }
+  .trace-item:last-child, .check-item:last-child { border-bottom: none; }
+  .status-ok { color: var(--green); }
+  .status-failed, .status-flagged { color: var(--red); }
+  .status-pending, .status-skipped { color: var(--muted); }
+  .hidden { display: none; }
+  .error-box {
+    background: #2a1414; border: 1px solid var(--red); color: var(--red);
+    border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+  }
+  .approve-banner {
+    background: var(--card); border: 1px solid var(--gold); border-radius: 10px;
+    padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between;
+    margin-top: 1rem;
+  }
+  .approve-banner.approved { border-color: var(--green); }
+  small.note { color: var(--muted); display: block; margin-top: 0.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LaunchFlow AI</h1>
+  <p class="tagline">One product. One campaign brain. Every platform ready.</p>
+
+  <div class="card">
+    <h2>1. Product brief</h2>
+    <form id="briefForm">
+      <div class="row">
+        <div>
+          <label>Product name</label>
+          <input name="product_name" required placeholder="Strawberry Cheesecake" />
+        </div>
+        <div>
+          <label>Price</label>
+          <input name="price" placeholder="₹299" />
+        </div>
+      </div>
+      <label>Description</label>
+      <textarea name="description" required placeholder="A rich, creamy strawberry cheesecake made fresh to order."></textarea>
+      <div class="row">
+        <div>
+          <label>Target audience</label>
+          <input name="audience" required placeholder="College students, young professionals" />
+        </div>
+        <div>
+          <label>Main selling point (USP)</label>
+          <input name="usp" required placeholder="Fresh and affordable" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Brand style / tone</label>
+          <input name="brand_tone" placeholder="Fun and colourful" />
+        </div>
+        <div>
+          <label>Preferred language</label>
+          <input name="language" placeholder="English" />
+        </div>
+      </div>
+      <label>Product image</label>
+      <input type="file" name="image" accept="image/*" />
+      <button type="submit" id="generateBtn">Generate Campaign</button>
+      <small class="note">Needs a running backend with an OpenRouter key set (see README).</small>
+    </form>
+  </div>
+
+  <div id="errorBox" class="error-box hidden"></div>
+  <div id="loading" class="card hidden">Generating campaign… this calls the Campaign Brain and can take a few seconds.</div>
+
+  <div id="results" class="hidden">
+
+    <div class="card">
+      <h2>2. Campaign Brain</h2>
+      <div id="brainSummary"></div>
+    </div>
+
+    <div class="card">
+      <h2>3. Platform content</h2>
+      <div class="platform-grid" id="platformGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>4. Quality & consistency checks</h2>
+      <div id="checksList"></div>
+    </div>
+
+    <div class="card">
+      <h2>5. Trace</h2>
+      <div id="traceList"></div>
+    </div>
+
+    <div class="approve-banner" id="approveBanner">
+      <div>
+        <strong>Human approval</strong>
+        <div style="color: var(--muted); font-size: 0.85rem;">Review everything above, then approve before downloading.</div>
+      </div>
+      <div>
+        <button class="secondary" id="regenerateBtn">Regenerate</button>
+        <button id="approveBtn">Approve & Download</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('briefForm');
+const errorBox = document.getElementById('errorBox');
+const loading = document.getElementById('loading');
+const results = document.getElementById('results');
+const generateBtn = document.getElementById('generateBtn');
+let lastPayload = null;
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await runGenerate();
+});
+
+document.getElementById('regenerateBtn').addEventListener('click', runGenerate);
+
+document.getElementById('approveBtn').addEventListener('click', () => {
+  if (!lastPayload) return;
+  const blob = new Blob([JSON.stringify(lastPayload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `launchflow-campaign-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('approveBanner').classList.add('approved');
+});
+
+async function runGenerate() {
+  errorBox.classList.add('hidden');
+  results.classList.add('hidden');
+  loading.classList.remove('hidden');
+  generateBtn.disabled = true;
+
+  const fd = new FormData(form);
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/generate-campaign', { method: 'POST', body: fd });
+    const data = await res.json();
+    loading.classList.add('hidden');
+    generateBtn.disabled = false;
+
+    if (!data.ok) {
+      errorBox.textContent = 'Campaign generation failed: ' + (data.error || 'unknown error');
+      errorBox.classList.remove('hidden');
+      renderTrace(data.trace || []);
+      results.classList.remove('hidden');
+      document.getElementById('brainSummary').innerHTML = '';
+      document.getElementById('platformGrid').innerHTML = '';
+      document.getElementById('checksList').innerHTML = '';
+      return;
+    }
+
+    lastPayload = data;
+    renderAll(data);
+    results.classList.remove('hidden');
+    document.getElementById('approveBanner').classList.remove('approved');
+  } catch (err) {
+    loading.classList.add('hidden');
+    generateBtn.disabled = false;
+    errorBox.textContent = 'Request failed: ' + err.message;
+    errorBox.classList.remove('hidden');
+  }
+}
+
+function renderAll(data) {
+  const brain = data.campaign.campaign_brain || {};
+  document.getElementById('brainSummary').innerHTML = `
+    <p><strong>Product:</strong> ${esc(brain.product_identity)}</p>
+    <p><strong>Audience:</strong> ${esc(brain.audience)}</p>
+    <p><strong>USP:</strong> ${esc(brain.usp)}</p>
+    <p><strong>Brand voice:</strong> ${esc(brain.brand_voice)}</p>
+    <p><strong>Core message:</strong> ${esc(brain.core_message)}</p>
+    <p><strong>CTA:</strong> ${esc(brain.cta)}</p>
+  `;
+
+  const platforms = data.campaign.platforms || {};
+  const img = data.image_url ? `<img src="${data.image_url}" alt="product" />` : '';
+  const grid = document.getElementById('platformGrid');
+  grid.innerHTML = '';
+
+  if (platforms.instagram) {
+    grid.innerHTML += platformCard('Instagram Post', img, `
+      <p>${esc(platforms.instagram.caption)}</p>
+      <div class="hashtags">${(platforms.instagram.hashtags || []).map(esc).join(' ')}</div>
+      <p><em>${esc(platforms.instagram.cta)}</em></p>
+    `);
+  }
+  if (platforms.whatsapp) {
+    grid.innerHTML += platformCard('WhatsApp Campaign', img, `
+      <p>${esc(platforms.whatsapp.message)}</p>
+      <p><em>${esc(platforms.whatsapp.cta)}</em></p>
+    `);
+  }
+  if (platforms.facebook) {
+    grid.innerHTML += platformCard('Facebook Post', img, `
+      <p>${esc(platforms.facebook.caption)}</p>
+      <p><em>${esc(platforms.facebook.cta)}</em></p>
+    `);
+  }
+  if (platforms.x) {
+    grid.innerHTML += platformCard('X Post', '', `
+      <p>${esc(platforms.x.post)}</p>
+      <p><em>${esc(platforms.x.cta)}</em></p>
+    `);
+  }
+
+  renderChecks(data.quality);
+  renderTrace(data.trace);
+}
+
+function platformCard(title, img, body) {
+  return `<div class="platform-card"><h3>${esc(title)}</h3>${img}${body}</div>`;
+}
+
+function renderChecks(quality) {
+  const el = document.getElementById('checksList');
+  if (!quality) { el.innerHTML = ''; return; }
+  el.innerHTML = `<p>${esc(quality.summary)}</p>` + quality.checks.map(c => `
+    <div class="check-item">
+      <span>${esc(c.platform)} — ${esc(c.check)}</span>
+      <span class="${c.passed ? 'status-ok' : 'status-failed'}">${c.passed ? 'PASS' : 'FLAGGED'}</span>
+    </div>
+  `).join('');
+}
+
+function renderTrace(trace) {
+  const el = document.getElementById('traceList');
+  el.innerHTML = (trace || []).map(t => `
+    <div class="trace-item">
+      <span>${esc(t.step)}${t.detail ? ' — ' + esc(t.detail) : ''}</span>
+      <span class="status-${esc(t.status)}">${esc(t.status).toUpperCase()}</span>
+    </div>
+  `).join('');
+}
+
+function esc(s) {
+  if (s === undefined || s === null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>

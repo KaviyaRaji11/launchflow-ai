@@ -1,0 +1,26 @@
+# Provider credentials and local environment
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Generated media and build output
+backend/uploads/*
+!backend/uploads/.gitkeep
+frontend-react/dist/
+frontend-react/node_modules/
+
+# Tooling / OS files
+.DS_Store
+.pytest_cache/
+.coverage
