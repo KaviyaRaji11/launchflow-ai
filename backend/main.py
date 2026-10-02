@@ -27,10 +27,7 @@ from services.media_storage import MEDIA_DIR as UPLOAD_DIR, save_media
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
-OPENROUTER_MODEL = os.getenv(
-    "OPENROUTER_MODEL",
-    "meta-llama/llama-3.1-8b-instruct:free",
-)
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 APP_ROOT = Path(__file__).resolve().parent
@@ -353,7 +350,7 @@ async def call_openrouter_copy(prompt: str, temperature: float = 0.8):
 
         raise HTTPException(
             status_code=502,
-            detail=f"Campaign text provider returned HTTP {response.status_code}.",
+            detail=f"Campaign text provider returned HTTP {response.status_code}: {provider_error}",
         )
 
     try:
