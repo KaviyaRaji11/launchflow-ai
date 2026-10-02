@@ -127,14 +127,20 @@
           <input name="brand_tone" placeholder="Fun and colourful" />
         </div>
         <div>
-          <label>Preferred language</label>
-          <input name="language" placeholder="English" />
-        </div>
+  <label>Language <span>*</span></label>
+  <input
+    type="text"
+    value="English"
+    readonly
+    aria-label="Campaign language"
+  />
+  <small>Campaign content will be generated in English.</small>
+</div>
       </div>
       <label>Product image</label>
       <input type="file" name="image" accept="image/*" />
       <button type="submit" id="generateBtn">Generate Campaign</button>
-      <small class="note">Needs a running backend with an OpenRouter key set (see README).</small>
+      <small class="note">Campaign content is generated in English using your selected brand tone.</small>
     </form>
   </div>
 
