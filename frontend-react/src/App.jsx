@@ -1655,25 +1655,6 @@ function App() {
                 >
                   Copy Caption
                 </button>
-                <button
-                  type="button"
-                  onClick={
-                    regenerateCaption
-                  }
-                  disabled={
-                    actionLoading ===
-                      'caption' ||
-                    !generated
-                  }
-                >
-                  {actionLoading === 'caption' ? 'Regenerating Caption...' : '↻ Regenerate Caption'}
-                </button>
-
-                {(activePlatform === 'instagram' || activePlatform === 'youtube') && (
-                  <button type="button" onClick={generateScriptIdea} disabled={actionLoading === 'script' || !generated}>
-                    {actionLoading === 'script' ? 'Generating Script...' : activePlatform === 'instagram' ? '✦ Generate Reel Script' : '✦ Generate Short Script'}
-                  </button>
-                )}
               </div>
               {copyStatus && <p className="copy-status" role="status">{copyStatus}</p>}
 
@@ -1751,7 +1732,6 @@ function App() {
                   </strong>
                   <div className="asset-actions">
                     <button type="button" onClick={() => copyText(scriptText(scriptIdeas[activePlatform]), 'Script copied.')}>Copy Script</button>
-                    <button type="button" onClick={generateScriptIdea} disabled={actionLoading === 'script'}>Regenerate Script</button>
                   </div>
                 </div>
               )}
