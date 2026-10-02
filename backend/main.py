@@ -344,6 +344,13 @@ async def call_openrouter_copy(prompt: str, temperature: float = 0.8):
         raise HTTPException(status_code=502, detail=f"Could not connect to OpenRouter: {error}")
 
     if response.status_code != 200:
+        try:
+            provider_error = response.json()
+        except Exception:
+            provider_error = response.text
+
+        print("OPENROUTER ERROR:", response.status_code, provider_error)
+
         raise HTTPException(
             status_code=502,
             detail=f"Campaign text provider returned HTTP {response.status_code}.",
