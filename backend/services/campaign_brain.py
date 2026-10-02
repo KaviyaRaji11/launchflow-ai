@@ -237,19 +237,25 @@ async def call_campaign_brain(brief: dict) -> dict:
     # -----------------------------------------------------
 
     payload = {
-        "model": OPENROUTER_MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": build_user_prompt(brief),
-            },
-        ],
-        "temperature": 0.7,
-    }
+    "model": OPENROUTER_MODEL,
+
+    "messages": [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT,
+        },
+        {
+            "role": "user",
+            "content": build_user_prompt(brief),
+        },
+    ],
+
+    "temperature": 0.3,
+
+    "response_format": {
+        "type": "json_object"
+    },
+}
 
     # -----------------------------------------------------
     # Request headers
